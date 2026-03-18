@@ -47,7 +47,7 @@ A web-based lead management and auto-dialing system that integrates with MicroSI
 - PostgreSQL 12+
 - Web server (Apache/Nginx)
 - MicroSIP installed on client machines
-- FusionPBX (optional, for call analytics)
+- FusionPBX (optional) - required ONLY for Call Reports & CDR. Core dialing works without it
 - Modern web browser
 
 ## 🛠️ Installation
