@@ -365,7 +365,7 @@ tbody tr:hover td{background:#fafbfc;}
     <a href="/leads/" class="topbar-title">📞 Leads Lite</a>
     <div class="topbar-links">
         Signed in as <strong><?= h(current_username()) ?></strong>
-        <a href="https://sip.theunionconsulting.com/leads/" class="tl-btn" style="color:#6d28d9;border-color:#ddd6fe;background:#f5f3ff;">▦ Campaigns</a>
+        <a href="https://sip.domain.com/leads/" class="tl-btn" style="color:#6d28d9;border-color:#ddd6fe;background:#f5f3ff;">▦ Campaigns</a>
         <a href="/leads/interested.php" class="tl-btn tl-green">✓ Interested</a>
 <a href="/leads/callback.php" class="tl-btn tl-orange">↩ Call Back</a>
         <a href="/leads/tasks.php" class="tl-btn tl-blue">📅 Tasks</a>
