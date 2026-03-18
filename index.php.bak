@@ -492,7 +492,7 @@ function svg_trash(): string {
 
     <!-- TOP BAR -->
     <div class="topbar">
-        <a href="https://sip.theunionconsulting.com/leads/" class="topbar-title" style="text-decoration:none;color:inherit;">📞 Leads Lite</a>
+        <a href="https://domain.com/leads/" class="topbar-title" style="text-decoration:none;color:inherit;">📞 Leads Lite</a>
         <div class="topbar-user">
             Signed in as <strong><?= h(current_username()) ?></strong>
             <a href="/leads/?tab=interested" class="admin-link" style="color:#065f46;border-color:#a7f3d0;background:#ecfdf5;">✓ Interested</a>
