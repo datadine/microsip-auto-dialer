@@ -1,0 +1,8 @@
+# Backup files
+*.backup
+*_OLD.php
+
+# Test files
+fusionpbx/test*.php
+fusionpbx/session_test.php
+fusionpbx_debug.php

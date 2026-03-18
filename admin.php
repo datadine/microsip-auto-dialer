@@ -38,14 +38,14 @@ try {
         $role=$_POST['role']==='admin'?'admin':'user';
         $cup=isset($_POST['can_upload']); $cdel=isset($_POST['can_delete']);
         if($uname===''||strlen($pass)<6){ $flash='Username required and password must be 6+ chars.'; }
-        else { $hash=password_hash($pass,PASSWORD_BCRYPT); $pdo->prepare("INSERT INTO public.users (username,password_hash,role,can_upload,can_delete) VALUES (?,?,?,?,?)")->execute([$uname,$hash,$role,$cup,$cdel]); $flash="User '{$uname}' created."; }
+        else { $hash=password_hash($pass,PASSWORD_BCRYPT); $pdo->prepare("INSERT INTO public.users (username,password_hash,role,can_upload,can_delete,extension) VALUES (?,?,?,?,?,?)")->execute([$uname,$hash,$role,$cup,$cdel,$_POST['extension']??null]); $flash="User '{$uname}' created."; }
         $tab='users';
     }
 
     if ($action==='update_user') {
         $uid2=(int)$_POST['user_id']; $role=$_POST['role']==='admin'?'admin':'user';
         $cup=isset($_POST['can_upload']); $cdel=isset($_POST['can_delete']); $active=isset($_POST['active']);
-        $pdo->prepare("UPDATE public.users SET role=?,can_upload=?,can_delete=?,active=? WHERE id=?")->execute([$role,$cup,$cdel,$active,$uid2]);
+        $pdo->prepare("UPDATE public.users SET role=?,can_upload=?,can_delete=?,active=?,extension=? WHERE id=?")->execute([$role,$cup,$cdel,$active,$_POST['extension']??null,$uid2]);
         if(!empty($_POST['new_password'])&&strlen((string)$_POST['new_password'])>=6)
             $pdo->prepare("UPDATE public.users SET password_hash=? WHERE id=?")->execute([password_hash((string)$_POST['new_password'],PASSWORD_BCRYPT),$uid2]);
         $flash="User updated."; $tab='users';
@@ -140,7 +140,8 @@ try {
 
 done:
 
-$all_users=$pdo->query("SELECT id,username,role,can_upload,can_delete,active,created_at FROM public.users ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+$all_users=$pdo->query("SELECT id,username,role,can_upload,can_delete,active,created_at,extension FROM public.users ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+$available_extensions=$pdo->query("SELECT DISTINCT extension FROM fusionpbx_calls WHERE extension IS NOT NULL ORDER BY extension")->fetchAll(PDO::FETCH_COLUMN);
 
 $camp_page=max(1,(int)($_GET['cp']??1)); $camp_limit=8; $camp_off=($camp_page-1)*$camp_limit;
 $camp_search=trim($_GET['cs']??'');
@@ -392,6 +393,7 @@ function pagination_links(int $current,int $total,string $extra='',string $param
         <a href="/leads/interested.php" class="nav-item">✓ Interested</a>
         <a href="/leads/callback.php" class="nav-item">↩ Call Back</a>
         <a href="/leads/tasks.php"      class="nav-item">📅 Due Tasks</a>
+		<a href="fusionpbx/call_reports.php" class="nav-item">📊 Call Reports & Analytics</a>
         <a href="?tab=trash"       class="nav-item <?= $tab==='trash'      ?'active':'' ?>">
             🗑 Trash <?php if(count($trash)>0): ?><span class="nav-badge"><?= count($trash) ?></span><?php endif; ?>
         </a>
@@ -493,7 +495,7 @@ function pagination_links(int $current,int $total,string $extra='',string $param
                     <td><span class="badge <?= $u['active']?'badge-on':'badge-off' ?>"><?= $u['active']?'ON':'OFF' ?></span></td>
                     <td>
                         <div class="act-row">
-                            <button type="button" class="icon-btn ib-edit" title="Edit" onclick="openEdit(<?= (int)$u['id'] ?>,'<?= h(addslashes($u['username'])) ?>','<?= h($u['role']) ?>',<?= $u['can_upload']?'true':'false' ?>,<?= $u['can_delete']?'true':'false' ?>,<?= $u['active']?'true':'false' ?>)">
+                            <button type="button" class="icon-btn ib-edit" title="Edit" onclick="openEdit(<?= (int)$u['id'] ?>,'<?= h(addslashes($u['username'])) ?>','<?= h($u['role']) ?>',<?= $u['can_upload']?'true':'false' ?>,<?= $u['can_delete']?'true':'false' ?>,<?= $u['active']?'true':'false' ?>,'<?= h($u['extension']??'') ?>')">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             </button>
                             <?php if((int)$u['id']!==current_user_id()): ?>
@@ -529,6 +531,7 @@ function pagination_links(int $current,int $total,string $extra='',string $param
                 <div class="form-grid">
                     <div class="fgroup"><label class="inp-label">Username</label><input type="text" name="username" required class="inp" style="width:100%;" placeholder="john_agent"></div>
                     <div class="fgroup"><label class="inp-label">Password (min 6)</label><input type="password" name="password" required class="inp" style="width:100%;" placeholder="••••••••"></div>
+                    <div class="fgroup"><label class="inp-label">Extension</label><select name="extension" class="inp" style="width:100%;"><option value="">-- None --</option><?php foreach($available_extensions as $ext): ?><option value="<?= htmlspecialchars($ext) ?>"><?= htmlspecialchars($ext) ?></option><?php endforeach; ?></select></div>
                     <div class="fgroup"><label class="inp-label">Role</label><select name="role" class="inp" style="width:100%;"><option value="user">User</option><option value="admin">Admin</option></select></div>
                     <div class="fgroup" style="display:flex;flex-direction:column;gap:12px;justify-content:flex-end;">
                         <label class="checkbox-row"><input type="checkbox" name="can_upload"> Can Upload</label>
@@ -756,6 +759,7 @@ function pagination_links(int $current,int $total,string $extra='',string $param
             <input type="hidden" name="user_id" id="edit-uid">
             <div class="fgroup"><label class="inp-label">Username</label><input type="text" id="edit-uname" class="inp" style="width:100%;" disabled></div>
             <div class="fgroup"><label class="inp-label">New Password <span style="font-weight:400;opacity:.5;">(leave blank to keep)</span></label><input type="password" name="new_password" class="inp" style="width:100%;" placeholder="••••••••"></div>
+                <div class="fgroup" style="margin-bottom:0;"><label class="inp-label">Extension</label><select name="extension" id="edit-extension" class="inp" style="width:100%;"><option value="">-- None --</option><?php foreach($available_extensions as $ext): ?><option value="<?= htmlspecialchars($ext) ?>"><?= htmlspecialchars($ext) ?></option><?php endforeach; ?></select></div>
             <div class="form-grid" style="margin-bottom:14px;">
                 <div class="fgroup" style="margin-bottom:0;"><label class="inp-label">Role</label><select name="role" id="edit-role" class="inp" style="width:100%;"><option value="user">User</option><option value="admin">Admin</option></select></div>
                 <div class="fgroup" style="margin-bottom:0;display:flex;flex-direction:column;gap:10px;justify-content:flex-end;">
@@ -850,13 +854,14 @@ document.getElementById('admin-int-modal').addEventListener('click', function(e)
     if (e.target === this) closeAdminIntEdit();
 });
 
-function openEdit(id,username,role,canUpload,canDelete,active){
+function openEdit(id,username,role,canUpload,canDelete,active,extension){
     document.getElementById('edit-uid').value=id;
     document.getElementById('edit-uname').value=username;
     document.getElementById('edit-role').value=role;
     document.getElementById('edit-cup').checked=canUpload;
     document.getElementById('edit-cdel').checked=canDelete;
     document.getElementById('edit-active').checked=active;
+    document.getElementById('edit-extension').value=extension||'';
     document.getElementById('edit-modal').classList.add('open');
 }
 function closeEdit(){ document.getElementById('edit-modal').classList.remove('open'); }
